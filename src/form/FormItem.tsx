@@ -4,7 +4,6 @@ import isString from 'lodash/isString';
 import get from 'lodash/get';
 import merge from 'lodash/merge';
 import isFunction from 'lodash/isFunction';
-import lodashTemplate from 'lodash/template';
 import {
   CheckCircleFilledIcon as TdCheckCircleFilledIcon,
   CloseCircleFilledIcon as TdCloseCircleFilledIcon,
@@ -17,7 +16,7 @@ import useGlobalIcon from '../hooks/useGlobalIcon';
 import type { TdFormItemProps, ValueType, FormItemValidateMessage, NamePath, FormInstanceFunctions } from './type';
 import { StyledProps } from '../common';
 import { HOOK_MARK } from './hooks/useForm';
-import { validate as validateModal } from './formModel';
+import { validate as validateModal, parseMessage } from './formModel';
 import { useFormContext, useFormListContext } from './FormContext';
 import useFormItemStyle from './hooks/useFormItemStyle';
 import { formItemDefaultProps } from './defaultProps';
@@ -31,6 +30,7 @@ export interface FormItemProps extends TdFormItemProps, StyledProps {
 
 export interface FormItemInstance {
   name?: NamePath;
+  isUpdated?: boolean;
   value?: any;
   getValue?: Function;
   setValue?: Function;
@@ -40,6 +40,7 @@ export interface FormItemInstance {
   setValidateMessage?: Function;
   resetValidate?: Function;
   validateOnly?: Function;
+  isFormList?: boolean;
 }
 
 const FormItem = forwardRef<FormItemInstance, FormItemProps>((props, ref) => {
@@ -107,8 +108,14 @@ const FormItem = forwardRef<FormItemInstance, FormItemProps>((props, ref) => {
 
   const formItemRef = useRef<FormItemInstance>(); // 当前 formItem 实例
   const innerFormItemsRef = useRef([]);
+  const isUpdatedRef = useRef(false); // 校验开关
   const shouldValidate = useRef(false); // 校验开关
   const valueRef = useRef(formValue); // 当前最新值
+  const errorListMapRef = useRef(new Map());
+  const snakeName = []
+    .concat(formListName, name)
+    .filter((item) => item !== undefined)
+    .join('_'); // 转化 name
 
   const errorMessages = useMemo(() => errorMessage ?? globalFormConfig.errorMessage, [errorMessage, globalFormConfig]);
 
@@ -123,7 +130,7 @@ const FormItem = forwardRef<FormItemInstance, FormItemProps>((props, ref) => {
       className,
       help,
       tips,
-      name,
+      snakeName,
       status,
       successBorder,
       errorList,
@@ -144,6 +151,7 @@ const FormItem = forwardRef<FormItemInstance, FormItemProps>((props, ref) => {
     const { setPrevStore } = form?.getInternalHooks?.(HOOK_MARK) || {};
     setPrevStore?.(form?.getFieldsValue?.(true));
 
+    isUpdatedRef.current = true;
     shouldValidate.current = validate;
     valueRef.current = newVal;
     setFormValue(newVal);
@@ -179,6 +187,7 @@ const FormItem = forwardRef<FormItemInstance, FormItemProps>((props, ref) => {
     };
 
     if (React.isValidElement(statusIcon)) {
+      // @ts-ignore
       return resultIcon(React.cloneElement(statusIcon, { style: { color: 'unset' }, ...statusIcon.props }));
     }
     if (statusIcon === true) {
@@ -208,9 +217,11 @@ const FormItem = forwardRef<FormItemInstance, FormItemProps>((props, ref) => {
       .map((item) => {
         Object.keys(item).forEach((key) => {
           if (!item.message && errorMessages[key]) {
-            const compiled = lodashTemplate(errorMessages[key]);
             // eslint-disable-next-line
-            item.message = compiled({ name: isString(label) ? label : name, validate: item[key] });
+            item.message = parseMessage(errorMessages[key], {
+              validate: item[key],
+              name: isString(label) ? label : String(name),
+            });
           }
         });
         return item;
@@ -239,15 +250,23 @@ const FormItem = forwardRef<FormItemInstance, FormItemProps>((props, ref) => {
       allowSetValue,
     } = await analysisValidateResult(trigger);
 
+    // 缓存不同 trigger 下的错误信息 all 包含了所有场景需过滤
+    if (innerErrorList.length && trigger !== 'all') {
+      errorListMapRef.current.set(trigger, innerErrorList);
+    } else {
+      errorListMapRef.current.delete(trigger);
+    }
+    const cacheErrorList = [...errorListMapRef.current.values()].flat();
+
     if (allowSetValue) {
       setSuccessList(innerSuccessList);
-      setErrorList(innerErrorList);
+      setErrorList(cacheErrorList.length ? cacheErrorList : innerErrorList);
     }
     // 根据校验结果设置校验状态
     if (validateRules.length) {
       let status = ValidateStatus.SUCCESS;
-      if (innerErrorList.length) {
-        status = innerErrorList?.[0]?.type || ValidateStatus.ERROR;
+      if (innerErrorList.length || cacheErrorList.length) {
+        status = innerErrorList?.[0]?.type || cacheErrorList?.[0]?.type || ValidateStatus.ERROR;
       }
       setVerifyStatus(status);
     } else {
@@ -260,7 +279,7 @@ const FormItem = forwardRef<FormItemInstance, FormItemProps>((props, ref) => {
     setResetValidating(false);
 
     return {
-      [String(name)]: innerErrorList.length === 0 ? true : resultList,
+      [snakeName]: innerErrorList.length === 0 ? true : resultList,
     };
   }
 
@@ -268,7 +287,7 @@ const FormItem = forwardRef<FormItemInstance, FormItemProps>((props, ref) => {
     const { errorList: innerErrorList, resultList } = await analysisValidateResult(trigger);
 
     return {
-      [String(name)]: innerErrorList.length === 0 ? true : resultList,
+      [snakeName]: innerErrorList.length === 0 ? true : resultList,
     };
   }
 
@@ -416,6 +435,7 @@ const FormItem = forwardRef<FormItemInstance, FormItemProps>((props, ref) => {
   const instance: FormItemInstance = {
     name,
     value: formValue,
+    isUpdated: isUpdatedRef.current,
     getValue: () => valueRef.current,
     setValue: (newVal: any) => updateFormValue(newVal),
     setField,

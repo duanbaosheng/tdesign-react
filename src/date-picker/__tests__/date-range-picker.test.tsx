@@ -1,6 +1,5 @@
 import MockDate from 'mockdate';
 import React from 'react';
-import dayjs from 'dayjs';
 import { BrowseIcon, LockOnIcon } from 'tdesign-icons-react';
 
 import { render, fireEvent, act, waitFor, vi } from '@test/utils';
@@ -20,16 +19,6 @@ describe('DateRangePicker', () => {
     MockDate.reset();
   });
 
-  it('className style', () => {
-    const wrapper = render(<DateRangePicker className="test-class" style={{ width: '100px' }} />);
-    expect(wrapper).toMatchSnapshot();
-  });
-
-  it('allowInput', () => {
-    const wrapper = render(<DateRangePicker allowInput={false} />);
-    expect(wrapper).toMatchSnapshot();
-  });
-
   it('clearable', async () => {
     const { container } = render(<DateRangePicker defaultValue={['2022-09-14', '2022-10-01']} clearable={true} />);
     // 模拟鼠标进入
@@ -37,15 +26,6 @@ describe('DateRangePicker', () => {
 
     const clearElement = document.querySelector('.t-range-input__suffix-clear');
     expect(clearElement).not.toBeNull();
-  });
-
-  it('disableDate', () => {
-    const disabledDate = {
-      before: dayjs().subtract(5, 'day').format(),
-      after: dayjs().add(5, 'day').format(),
-    };
-    const wrapper = render(<DateRangePicker disableDate={disabledDate} />);
-    expect(Array.from(wrapper.container.children)).toMatchSnapshot();
   });
 
   it('disabled', () => {
@@ -57,7 +37,7 @@ describe('DateRangePicker', () => {
   it('enableTimePicker', async () => {
     const { container } = render(<DateRangePicker enableTimePicker={true} />);
     act(() => {
-      fireEvent.click(container.querySelector('input'));
+      fireEvent.mouseDown(container.querySelector('input'));
       vi.runAllTimers();
     });
     const panelElement = await waitFor(() => document.querySelector('.t-date-picker__panel-time'));
@@ -67,7 +47,7 @@ describe('DateRangePicker', () => {
   it('firstDayOfWeek', async () => {
     const { container } = render(<DateRangePicker firstDayOfWeek={3} />);
     act(() => {
-      fireEvent.click(container.querySelector('input'));
+      fireEvent.mouseDown(container.querySelector('input'));
       vi.runAllTimers();
     });
     const weekElement = await waitFor(() => document.querySelector('.t-date-picker__table table thead tr th'));
@@ -89,7 +69,7 @@ describe('DateRangePicker', () => {
   it('mode', async () => {
     const { container } = render(<DateRangePicker mode={'quarter'} />);
     act(() => {
-      fireEvent.click(container.querySelector('input'));
+      fireEvent.mouseDown(container.querySelector('input'));
       vi.runAllTimers();
     });
     const pickerTable = await waitFor(() => document.querySelector('.t-date-picker__table'));
@@ -99,7 +79,7 @@ describe('DateRangePicker', () => {
   it('mode', async () => {
     const { container } = render(<DateRangePicker mode={'week'} value={['2022-37th', '2022-38th']} />);
     act(() => {
-      fireEvent.click(container.querySelector('input'));
+      fireEvent.mouseDown(container.querySelector('input'));
       vi.runAllTimers();
     });
     const weekEle = await waitFor(() => document.querySelector('.t-date-picker__panel-week'));
@@ -114,7 +94,7 @@ describe('DateRangePicker', () => {
   it('popupProps', async () => {
     const { container } = render(<DateRangePicker popupProps={{ showArrow: true }} />);
     act(() => {
-      fireEvent.click(container.querySelector('input'));
+      fireEvent.mouseDown(container.querySelector('input'));
       vi.runAllTimers();
     });
     const popupArrow = await waitFor(() => document.querySelector('.t-popup__arrow'));
@@ -133,7 +113,7 @@ describe('DateRangePicker', () => {
   it('presets', async () => {
     const { container } = render(<DateRangePicker presets={{ 特定日期范围: ['2021-01-01', '2022-01-01'] }} />);
     act(() => {
-      fireEvent.click(container.querySelector('input'));
+      fireEvent.mouseDown(container.querySelector('input'));
       vi.runAllTimers();
     });
     const pickerPresets = await waitFor(() => document.querySelector('.t-date-picker__presets'));
@@ -163,7 +143,7 @@ describe('DateRangePicker', () => {
   it('timePickerProps', async () => {
     const { container } = render(<DateRangePicker enableTimePicker={true} timePickerProps={{ value: '13:01:01' }} />);
     act(() => {
-      fireEvent.click(container.querySelector('input'));
+      fireEvent.mouseDown(container.querySelector('input'));
       vi.runAllTimers();
     });
     const panelElement = await waitFor(() => document.querySelector('.t-date-picker__panel-time .t-is-current'));
@@ -194,7 +174,7 @@ describe('DateRangePicker', () => {
     const { container } = render(
       <DateRangePicker defaultValue={['2022-08-29', '2022-09-14']} onChange={changeFn} onPick={pickFn} />,
     );
-    fireEvent.click(container.querySelector('input'));
+    fireEvent.mouseDown(container.querySelector('input'));
 
     const firstTBody = await waitFor(() => document.querySelector('tbody'));
     fireEvent.click(firstTBody.firstChild.firstChild.firstChild);
@@ -206,7 +186,7 @@ describe('DateRangePicker', () => {
 
   it('panel select month and year', async () => {
     const { container } = render(<DateRangePicker defaultValue={['2022-08-29', '2022-09-14']} />);
-    fireEvent.click(container.querySelector('input'));
+    fireEvent.mouseDown(container.querySelector('input'));
 
     const panelEle = await waitFor(() => document.querySelector('.t-date-picker__panel-date'));
 

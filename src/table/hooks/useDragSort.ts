@@ -5,6 +5,7 @@ import get from 'lodash/get';
 import { TableRowData, TdPrimaryTableProps, DragSortContext, PrimaryTableCol } from '../type';
 import useClassName from './useClassName';
 import { hasClass } from '../../_util/dom';
+import useLatest from '../../_util/useLatest';
 import log from '../../_common/js/log';
 import swapDragArrayElement from '../../_common/js/utils/swapDragArrayElement';
 import { BaseTableColumns } from '../interface';
@@ -51,6 +52,19 @@ export default function useDragSort(props: TdPrimaryTableProps, primaryTableRef:
     originalColumns.current = props.columns;
   }, [props.columns]);
 
+  // fix: https://github.com/Tencent/tdesign/issues/294 修正 onDragSort 会使用旧的变量问题
+  const onDragSortRef = useLatest(onDragSort);
+
+  // 本地分页的表格，index 不同，需加上分页计数
+  function getDataPageIndex(index: number) {
+    const { pagination } = props;
+    // 开启本地分页的场景
+    if (!props.disableDataPage && pagination && data.length > pagination.pageSize) {
+      return pagination.pageSize * (pagination.current - 1) + index;
+    }
+    return index;
+  }
+
   const registerRowDragEvent = (element: HTMLElement) => {
     if (!isRowHandlerDraggable && !isRowDraggable) return;
     // 拖拽实例
@@ -62,7 +76,6 @@ export default function useDragSort(props: TdPrimaryTableProps, primaryTableRef:
     }
     const baseOptions: SortableOptions = {
       animation: 150,
-      ...props.dragSortOptions,
       ghostClass: tableDraggableClasses.ghost,
       chosenClass: tableDraggableClasses.chosen,
       dragClass: tableDraggableClasses.dragging,
@@ -83,15 +96,20 @@ export default function useDragSort(props: TdPrimaryTableProps, primaryTableRef:
           targetIndex,
           target: tData.current[targetIndex],
           data: tData.current,
-          newData: swapDragArrayElement([...tData.current], currentIndex, targetIndex),
+          newData: swapDragArrayElement(
+            [...tData.current],
+            getDataPageIndex(currentIndex),
+            getDataPageIndex(targetIndex),
+          ),
           e: evt,
           sort: 'row',
         };
         // currentData is going to be deprecated.
         params.currentData = params.newData;
 
-        onDragSort?.(params);
+        onDragSortRef.current?.(params);
       },
+      ...props.dragSortOptions,
     };
 
     if (!dragContainer) return;
@@ -147,7 +165,7 @@ export default function useDragSort(props: TdPrimaryTableProps, primaryTableRef:
         };
         // currentData is going to be deprecated.
         params.currentData = params.newData;
-        onDragSort?.(params);
+        onDragSortRef.current?.(params);
       },
     };
     const container = tableElement.querySelector('thead > tr') as HTMLDivElement;

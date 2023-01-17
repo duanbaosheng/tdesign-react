@@ -21,20 +21,20 @@ const FormContext = React.createContext<{
   formMapRef: React.RefObject<Map<any, React.RefObject<FormItemInstance>>>;
   onFormItemValueChange: (changedValue: Record<string, unknown>) => void;
 }>({
-  form: {},
+  form: undefined,
   labelWidth: '100px',
   labelAlign: 'right',
   layout: 'vertical',
   colon: false,
   initialData: {},
-  requiredMark: true,
+  requiredMark: undefined,
   scrollToFirstError: undefined,
-  showErrorMessage: true,
+  showErrorMessage: undefined,
   resetType: 'empty',
-  disabled: false,
+  disabled: undefined,
   rules: undefined,
   errorMessage: undefined,
-  statusIcon: false,
+  statusIcon: undefined,
   onFormItemValueChange: undefined,
   formMapRef: undefined,
 });
