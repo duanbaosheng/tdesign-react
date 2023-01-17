@@ -80,6 +80,7 @@ const Textarea = forwardRef((props: TextareaProps, ref: TextareaRefInterface) =>
     [`${classPrefix}-is-disabled`]: disabled,
     [`${classPrefix}-is-focused`]: isFocused,
     [`${classPrefix}-resize-none`]: typeof autosize === 'object',
+    [`${classPrefix}-textarea__default-size`]: autosize,
   });
 
   const adjustTextareaHeight = useCallback(() => {
